@@ -3,6 +3,19 @@
 # show compiler output
 VERBOSE = 0
 
+# Locate the SDK and ARM tools installed by the VEXcode VS Code extension.
+VEXCODE_STORAGE ?= $(HOME)/Library/Application Support/Code/User/globalStorage/vexrobotics.vexcode
+VEX_TOOLCHAIN_BIN ?= $(VEXCODE_STORAGE)/tools/cpp/toolchain_osxarm64/gcc/bin
+
+ifeq ($(origin T),undefined)
+VEX_SDK_PATH ?= $(shell find "$(VEXCODE_STORAGE)/sdk/cpp/V5" -mindepth 1 -maxdepth 1 -type d -name 'V5_*' -print 2>/dev/null | sort | tail -n 1)
+VEX_SDK_PATH ?= $(HOME)/sdk
+endif
+
+ifneq ($(shell test -x "$(VEX_TOOLCHAIN_BIN)/arm-none-eabi-ld" && echo yes),)
+export PATH := $(VEX_TOOLCHAIN_BIN):$(PATH)
+endif
+
 # include toolchain options
 include vex/mkenv.mk
 

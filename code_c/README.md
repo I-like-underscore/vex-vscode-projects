@@ -3,6 +3,25 @@
 Autonomous motion is disabled by default. This is a route template, not a
 field-ready program. No optical sensor or automatic homing is configured.
 
+## Build
+
+From the workspace root, run:
+
+```sh
+make -C code_c
+```
+
+On macOS, the makefile discovers the VEX C++ SDK and ARM toolchain installed by
+the VEXcode VS Code extension. To use a different installation, pass the SDK
+root with `T` and the directory containing the ARM tools with
+`VEX_TOOLCHAIN_BIN`:
+
+```sh
+make -C code_c T="/path/to/sdk/root" VEX_TOOLCHAIN_BIN="/path/to/gcc/bin"
+```
+
+The compiled binary is written to `code_c/build/code_c.bin`.
+
 ## Routines
 
 - `autonomousRed()`: toggle twice from yellow to red, reverse 50 mm, place at black
