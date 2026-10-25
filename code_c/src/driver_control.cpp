@@ -2,10 +2,12 @@
 
 using namespace vex;
 
+const int driverSpeedPercent = 60;
+
 void driverControl() {
     while (true) {
-        int driveSpeed = -controller1.Axis1.position();
-        int turn = -controller1.Axis3.position();
+        int driveSpeed = -controller1.Axis1.position() * driverSpeedPercent / 100;
+        int turn = -controller1.Axis3.position() * driverSpeedPercent / 100;
 
         if (driveSpeed > -10 && driveSpeed < 10) {
             driveSpeed = 0;
