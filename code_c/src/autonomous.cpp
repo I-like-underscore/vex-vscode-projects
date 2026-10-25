@@ -50,6 +50,25 @@
 
 using namespace vex;
 
+// Override scoring values supplied with the game rules.
+const int autonomousBonusPoints = 12;
+const int alliancePinPoints = 5;
+const int ownedYellowPinPoints = 10;
+const int midfieldPoints = 8;
+
+enum class ScoredPin { None, AllianceColor, OwnedYellow };
+
+struct AutonomousAudit {
+    int togglesCommanded = 0;
+    int togglesCompleted = 0;
+    int placementsCommanded = 0;
+    int placementsCompleted = 0;
+    int scoredPoints = 0;
+    bool midfieldCommanded = false;
+    bool midfieldReached = false;
+    bool motionSucceeded = false;
+};
+
 // CALIBRATION COMPLETE: set true only after hardware and all required paths
 // are calibrated below. Each required path must also have calibrated = true.
 const bool autonomousCalibrated = false;
@@ -64,8 +83,8 @@ const double initialReverseDistanceMm = 50;
 const double toggleDegrees = 0;
 const double toggleRetreatDegrees = 0;
 const bool toggleCalibrated = false;
-const int redToggleCount = 2; // TODO: verify on the actual toggle from its start color.
-const int blueToggleCount = 1;
+const int redToggleCount = 1; // TODO: verify on the actual toggle from its start color.
+const int blueToggleCount = 2;
 const int placementCount = 1; // EDIT: enable the first 1, 2, or 3 placements in order.
 const int autonomousMotionBudgetMs = 14500; // Reserve 500 ms of the 15s period.
 timer autonomousTimer;
@@ -73,6 +92,9 @@ timer autonomousTimer;
 struct PlacementPath {
     bool calibrated = false;
     int estimatedDurationMs = 0;
+    // Identify the pin this route is intended to score. OwnedYellow is valid
+    // only after verifying that the Goal is in a Quadrant owned by this Alliance.
+    ScoredPin scoredPin = ScoredPin::None;
     // Travel is in mm: positive forward, negative reverse.
     // Turns are relative degrees: positive right, negative left.
     // Lift, wrist, and claw positions are absolute motor encoder degrees.
@@ -89,6 +111,16 @@ struct PlacementPath {
     double holderWristDegrees = 0;
     double retreatDistanceMm = 0;
 };
+
+int pointsForPin(ScoredPin pin) {
+    if (pin == ScoredPin::AllianceColor) {
+        return alliancePinPoints;
+    }
+    if (pin == ScoredPin::OwnedYellow) {
+        return ownedYellowPinPoints;
+    }
+    return 0;
+}
 
 // EDIT ROUTES BELOW: zeros are placeholders, not measured positions.
 // Each route starts where the previous action ends, not at the match start.
@@ -305,6 +337,9 @@ bool placeAtHolder(const PlacementPath &path) {
 
 void runAutonomous(int toggleCount, const PlacementPath &finalHolder) {
     stopAutonomousMotors();
+    AutonomousAudit audit;
+    audit.togglesCommanded = toggleCount;
+    audit.placementsCommanded = placementCount;
     const PlacementPath *paths[] = {&blackHolderOne, &blackHolderTwo, &finalHolder};
     bool pathsReady = placementCount >= 1 && placementCount <= 3;
     for (int pathIndex = 0; pathsReady && pathIndex < placementCount; ++pathIndex) {
@@ -320,6 +355,7 @@ void runAutonomous(int toggleCount, const PlacementPath &finalHolder) {
                     (toggleDegrees > 0) == (toggleRetreatDegrees > 0)))) {
         robotBrain.Screen.clearScreen();
         robotBrain.Screen.printAt(20, 40, "Autonomous disabled: calibrate first");
+        robotBrain.Screen.printAt(20, 70, "No scoring actions were attempted");
         return;
     }
 
@@ -343,6 +379,7 @@ void runAutonomous(int toggleCount, const PlacementPath &finalHolder) {
                 succeeded = false;
                 break;
             }
+            ++audit.togglesCompleted;
         }
     }
     succeeded = succeeded && driveDistance(-initialReverseDistanceMm);
@@ -353,11 +390,30 @@ void runAutonomous(int toggleCount, const PlacementPath &finalHolder) {
             break;
         }
         succeeded = placeAtHolder(*paths[pathIndex]);
+        if (succeeded) {
+            ++audit.placementsCompleted;
+            audit.scoredPoints += pointsForPin(paths[pathIndex]->scoredPin);
+        }
     }
+    audit.motionSucceeded = succeeded &&
+                            audit.togglesCompleted == audit.togglesCommanded &&
+                            audit.placementsCompleted == audit.placementsCommanded;
     stopAutonomousMotors();
     robotBrain.Screen.clearScreen();
-    robotBrain.Screen.printAt(20, 40, succeeded ? outcome :
-                                              "Autonomous stopped: motion or timeout");
+    robotBrain.Screen.printAt(20, 35, audit.motionSucceeded ?
+        "AUTO COMMANDS COMPLETE" :
+        (succeeded ? outcome : "AUTO STOPPED: motion or timeout"));
+    robotBrain.Screen.printAt(20, 70, false, "Toggle contacts: %d/%d",
+                              audit.togglesCompleted, audit.togglesCommanded);
+    robotBrain.Screen.printAt(20, 100, false, "Pin placements: %d/%d",
+                              audit.placementsCompleted, audit.placementsCommanded);
+    robotBrain.Screen.printAt(20, 130, false, "Programmed pin points: %d",
+                              audit.scoredPoints);
+    robotBrain.Screen.printAt(20, 160, false, "Auto bonus (%d): referee decides",
+                              autonomousBonusPoints);
+    robotBrain.Screen.printAt(20, 190, false, "Midfield (%d): not programmed",
+                              midfieldPoints);
+    robotBrain.Screen.printAt(20, 220, "Visually verify pins/toggle/position");
 }
 
 void autonomousRed() {

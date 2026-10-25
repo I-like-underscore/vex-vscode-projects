@@ -3,6 +3,22 @@
 Autonomous motion is disabled by default. This is a route template, not a
 field-ready program. No optical sensor or automatic homing is configured.
 
+## Override scoring rules
+
+- Autonomous Bonus: 12 points, awarded by the referee to the Alliance with the
+  higher Autonomous-period score.
+- Alliance-colored Pin scored in a Goal: 5 points.
+- Yellow Pin scored in a Goal: 10 points for the Alliance that owns the Toggle
+  in that Goal's Quadrant.
+- Robot ending the Match in the contested Midfield: 8 points.
+
+The program reports completed motor commands and a programmed pin-point estimate
+after autonomous. This is not proof that a Pin entered a Goal, a Toggle changed
+to the intended color, or the Robot physically reached the Midfield. Those
+conditions require sensors or visual/referee confirmation. The Autonomous Bonus
+and Autonomous Win Point cannot be determined by one Robot program because they
+depend on field state, the opposing Alliance, and the official task definition.
+
 ## Build
 
 The VEX Robotics extension, SDK, and toolchain are installed separately on each
@@ -103,6 +119,17 @@ Configure toggles, placement paths, and the calibration gate in
    angles. There is no automatic reset or homing between runs.
 7. Check clearance, object retention, speeds, and motion timeouts under
    supervised testing. Enable `autonomousCalibrated` only after configuration.
+8. Set each enabled path's `scoredPin` to `ScoredPin::AllianceColor` or
+   `ScoredPin::OwnedYellow`. Leave it as `None` when the route does not score a
+   Pin or when Yellow-Pin quadrant ownership has not been verified.
+
+## Current autonomous audit
+
+As checked on October 25, 2026, autonomous is not field-ready and performs no
+motion: `autonomousCalibrated` is false, toggle travel is zero, route distances
+and mechanism positions are placeholders, route durations are zero, and every
+route has `calibrated = false`. Midfield movement is not programmed. These gates
+are intentional so placeholder values cannot unexpectedly move the Robot.
 
 ## Placement Coordinates
 
