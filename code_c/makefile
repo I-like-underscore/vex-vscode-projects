@@ -12,12 +12,15 @@ VEX_SDK_PATH ?= $(shell find "$(VEXCODE_STORAGE)/sdk/cpp/V5" -mindepth 1 -maxdep
 VEX_SDK_PATH ?= $(HOME)/sdk
 endif
 
-ifneq ($(shell test -x "$(VEX_TOOLCHAIN_BIN)/arm-none-eabi-ld" && echo yes),)
-export PATH := $(VEX_TOOLCHAIN_BIN):$(PATH)
-endif
-
 # include toolchain options
 include vex/mkenv.mk
+
+ifneq ($(shell test -x "$(VEX_TOOLCHAIN_BIN)/arm-none-eabi-ld" && echo yes),)
+LINK := "$(VEX_TOOLCHAIN_BIN)/arm-none-eabi-ld"
+SIZE := "$(VEX_TOOLCHAIN_BIN)/arm-none-eabi-size"
+OBJCOPY := "$(VEX_TOOLCHAIN_BIN)/arm-none-eabi-objcopy"
+ARCH := "$(VEX_TOOLCHAIN_BIN)/arm-none-eabi-ar"
+endif
 
 # location of the project source cpp and c files
 SRC_C  = $(wildcard src/*.cpp) 

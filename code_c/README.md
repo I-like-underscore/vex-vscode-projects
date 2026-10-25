@@ -5,16 +5,22 @@ field-ready program. No optical sensor or automatic homing is configured.
 
 ## Build
 
-From the workspace root, run:
+The VEX Robotics extension, SDK, and toolchain are installed separately on each
+computer; they are not included in the Git clone. On Windows, open the
+`code_c` folder itself in VS Code, then use the Command Palette
+(`Ctrl+Shift+P`) to run **VEX | Project: Download Toolchain** and
+**VEX | Project: Download SDK For Open Project** if needed. Build with
+**VEX | Project: C++ Build**.
+
+On macOS, you can also build from the repository root with:
 
 ```sh
 make -C code_c
 ```
 
-On macOS, the makefile discovers the VEX C++ SDK and ARM toolchain installed by
-the VEXcode VS Code extension. To use a different installation, pass the SDK
-root with `T` and the directory containing the ARM tools with
-`VEX_TOOLCHAIN_BIN`:
+The makefile automatically discovers the extension's SDK and ARM toolchain on
+macOS. To use a different installation, pass the SDK root with `T` and the
+directory containing the ARM tools with `VEX_TOOLCHAIN_BIN`:
 
 ```sh
 make -C code_c T="/path/to/sdk/root" VEX_TOOLCHAIN_BIN="/path/to/gcc/bin"
