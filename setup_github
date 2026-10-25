@@ -1,0 +1,8 @@
+cd /Users/jerzhan2/repos1/vex-vscode-projects
+git init
+git add .
+git commit -m "Add Roblox obby starter kit"
+git branch -M main
+git remote add origin git@github-personal:i-like-underscore/vex-vscode-projects.git
+git push -u origin main
+/
