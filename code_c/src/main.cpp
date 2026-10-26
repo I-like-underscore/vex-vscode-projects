@@ -30,7 +30,7 @@ motor_group toggleMotor(driveMotorLf, driveMotorLb, driveMotorRb, driveMotorRf);
 
 // TODO: replace these drivetrain geometry placeholders with measured values.
 // Route travel distances are edited in autonomous.cpp, not here.
-const double wheelTravelMm = 188.5; // Circumference of a 30 mm diameter wheel, in mm.
+const double wheelTravelMm = 259.34; // Nominal circumference of a 3.25-inch wheel, in mm.
 const double trackWidthMm = 350.0; // Left-to-right wheel center spacing, in mm.
 const double wheelBaseMm = 253.0; // Front-to-back wheel center spacing, in mm.
 const double externalGearRatio = 1.0; // Use the actual external drivetrain ratio.
