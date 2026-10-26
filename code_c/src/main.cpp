@@ -82,6 +82,23 @@ bool runPracticePeriod(void (*callback)(), int durationMs) {
 
 void runPracticeMatch() {
     stopAutonomousMotors();
+    if (!isAutonomousCalibrated()) {
+        robotBrain.Screen.clearScreen();
+        robotBrain.Screen.printAt(20, 40, "CALIBRATION MODE: autonomous disabled");
+        robotBrain.Screen.printAt(20, 75, "Press B for 1:45 manual measurement");
+        robotBrain.Screen.printAt(20, 110, "Press X to stop");
+        controller1.Screen.clearScreen();
+        controller1.Screen.setCursor(1, 1);
+        controller1.Screen.print("CALIBRATE B:start");
+        if (!waitForPracticeStart(true)) {
+            return;
+        }
+
+        practiceMatchActive.store(true);
+        runPracticePeriod(driverControl, manualPeriodMs);
+        return;
+    }
+
     controller1.Screen.clearScreen();
     controller1.Screen.setCursor(1, 1);
     controller1.Screen.print("A: auto 15s  X: stop");

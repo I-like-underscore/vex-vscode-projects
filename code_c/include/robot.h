@@ -16,6 +16,8 @@ extern vex::motor claw;
 extern vex::motor clawPosition;
 extern vex::competition robotCompetition;
 extern vex::drivetrain drive;
+extern const double wheelTravelMm;
+extern const double externalGearRatio;
 
 void autonomousRed();
 void autonomousBlue();
@@ -26,3 +28,4 @@ void selectAutonomous();
 void showAutonomousSelection();
 void stopAutonomousMotors();
 bool isAutonomousSelectionLocked();
+bool isAutonomousCalibrated();

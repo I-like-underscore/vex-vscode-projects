@@ -69,10 +69,17 @@ then use the controller:
    before another run. There is no automatic homing.
 
 Team selection is locked after A. The autonomous calibration gate still applies:
-if configuration is incomplete, no autonomous motion occurs, but the 15-second
-period still elapses before manual control can start. Controller disconnection
-during a running period stops practice. Practice refuses field/switch control
-connections and stops if one is connected; it does not bypass field disable.
+if configuration is incomplete, no autonomous motion occurs. Instead, calibration
+mode lets you press B immediately to begin a 1:45 manual measurement session.
+The Brain displays estimated drivetrain travel, left/right and individual drive
+motor degrees, both lift positions, wrist position, and claw position. The
+Controller displays the most commonly used measurements. Press Up once to zero
+only the four drive-motor measurement counters before a distance test. Up does
+not reset lift, wrist, or claw positions. Press X to stop the session.
+
+Controller disconnection during a running period stops practice. Practice
+refuses field/switch control connections and stops if one is connected; it does
+not bypass field disable.
 
 For official competition, set `practiceModeEnabled = false` and rebuild. Field
 control then starts autonomous and manual callbacks; A/B do not switch modes.
@@ -542,3 +549,32 @@ Set it to `true` only after:
 11. Set `autonomousCalibrated = true`.
 
 The autonomous report can confirm that motor commands finished, but you must visually confirm that the Pin actually entered the Goal, the Toggle reached the correct color, and the robot reached the intended position.
+
+
+
+Yes—you can now measure safely while autonomousCalibrated = false.
+I added calibration mode and successfully rebuilt the project.
+How to use it:
+1. Download the new program to the VEX Brain.
+2. Place the mechanisms in their repeatable starting positions.
+3. Start the program.
+4. The Brain displays CALIBRATION MODE.
+5. Press B to start the 1:45 measurement session.
+6. Drive and operate the mechanisms manually.
+7. Press Up once before a drive-distance test to reset the drive measurement to zero.
+8. Press X to stop.
+The Brain displays:
+- Estimated drive distance in millimetres
+- Average left and right motor degrees
+- All four individual drive-motor positions
+- Left and right lift positions
+- Wrist position
+- Claw position
+The Controller displays the drive distance, lift, wrist, and claw values.
+Code locations:
+- Calibration startup: [main.cpp (line 85)](/Users/jerzhan2/repos1/vex-vscode-projects/code_c/src/main.cpp:85)
+- Debug display: [driver_control.cpp (line 14)](/Users/jerzhan2/repos1/vex-vscode-projects/code_c/src/driver_control.cpp:14)
+- Calibration flag check: [autonomous.cpp (line 76)](/Users/jerzhan2/repos1/vex-vscode-projects/code_c/src/autonomous.cpp:76)
+The displayed drive distance is an estimate based on the 3.25-inch wheel and gear ratio. Compare it with a tape measure before trusting it. Lift, wrist, and claw are not reset by Up, because their absolute positions must remain referenced to their startup positions.
+
+

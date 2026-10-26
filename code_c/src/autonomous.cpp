@@ -73,6 +73,10 @@ struct AutonomousAudit {
 // are calibrated below. Each required path must also have calibrated = true.
 const bool autonomousCalibrated = false;
 
+bool isAutonomousCalibrated() {
+    return autonomousCalibrated;
+}
+
 // EDIT DISTANCE HERE: reverse travel after toggling, before the first pickup.
 const double initialReverseDistanceMm = 50;
 
