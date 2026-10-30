@@ -31,10 +31,10 @@ mingw32-make
 The makefile automatically locates the Windows SDK and toolchain installed by
 the VEX extension.
 
-On macOS, from the repository root:
+On macOS, from the repository root/code_c:
 
 ```sh
-make -C code_c
+make -C .
 ```
 
 The binary is written to `build/code_c.bin`.
