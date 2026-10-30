@@ -7,10 +7,10 @@
  *
  * 1. TOP-LEVEL SETTINGS below:
  *    initialReverseDistanceMm: reverse distance AFTER the color toggles, in mm.
- *    toggleDegrees / toggleRetreatDegrees: approach and release wheel rotations
- *      for ONE contact cycle. Calibrate BOTH, with opposite signs.
+ *    toggleWheelDegrees: motor-shaft rotation for one toggle; currently 1800
+ *      degrees (five turns). Verify the real mechanism travel before enabling.
  *    toggleCalibrated: set true only after checking the actual color cycle.
- *      Red currently repeats twice; Blue once from yellow: verify on the field.
+ *      Each toggleCount repeats the motor rotation once.
  *    redToggleCount / blueToggleCount: verified contacts for the chosen alliance.
  *    placementCount: 1 by default; raise to 2 or 3 only after timed testing.
  *    autonomousMotionBudgetMs: stop scheduling motion before the 15s period ends.
@@ -24,9 +24,9 @@
  *      including pickup, scoring, and retreat. Zero blocks an enabled path.
  *    DISTANCES: pickupDistanceMm, holderDistanceMm, retreatDistanceMm.
  *    TURNS: pickupTurnDegrees, holderTurnDegrees (positive right, negative left).
- *    MECHANISMS: pickupLiftDegrees, pickupWristDegrees, clawOpenDegrees,
+ *    MECHANISMS: pickupLiftDegrees, clawOpenDegrees,
  *      clawClosedDegrees, carryingLiftDegrees, holderLiftDegrees,
- *      holderWristDegrees (absolute motor encoder degrees).
+ *      (absolute motor encoder degrees).
  *    Pickup/holder travel: positive forward, negative reverse; retreat is
  *    normally positive because the code reverses it. Each route starts at
  *    the previous action's final pose. Zeros are placeholders, not calibration.
@@ -40,7 +40,7 @@
  *
  * Hardware ports and wheel geometry are in main.cpp. Manual controls are in
  * driver_control.cpp. In main.cpp, practiceModeEnabled selects button practice:
- * A starts 15 seconds of autonomous; after it ends, B starts 1:45 of manual.
+ * A starts 15 seconds of autonomous; after it ends, B starts manual control.
  * X stops practice. Set practiceModeEnabled = false for official field control.
  * Keep motion disabled until configuration is complete,
  * then verify the route under supervision; encoder completion cannot detect slip.
@@ -80,12 +80,10 @@ bool isAutonomousCalibrated() {
 // EDIT DISTANCE HERE: reverse travel after toggling, before the first pickup.
 const double initialReverseDistanceMm = 50;
 
-// Color toggling uses toggleMotor: all four driveMotor* motors together.
-// TODO: signed drive-motor degrees to contact the toggle; positive is forward.
-// Retreat must release the toggle before another contact. Verify the color cycle;
-// encoder travel alone cannot confirm the field toggle's color.
-const double toggleDegrees = 0;
-const double toggleRetreatDegrees = 0;
+// Dedicated PORT10 motor-shaft degrees per color toggle (5 full turns).
+// Verify the field mechanism's direction and actual toggle state before enabling.
+const double toggleWheelDegrees = 1800;
+const int toggleWheelSpeedPercent = 40;
 const bool toggleCalibrated = false;
 const int redToggleCount = 1; // TODO: verify on the actual toggle from its start color.
 const int blueToggleCount = 2;
@@ -101,18 +99,16 @@ struct PlacementPath {
     ScoredPin scoredPin = ScoredPin::None;
     // Travel is in mm: positive forward, negative reverse.
     // Turns are relative degrees: positive right, negative left.
-    // Lift, wrist, and claw positions are absolute motor encoder degrees.
+    // Lift and claw positions are absolute motor encoder degrees.
     double pickupTurnDegrees = 0;
     double pickupDistanceMm = 0;
     double pickupLiftDegrees = 0;
-    double pickupWristDegrees = 0;
     double clawOpenDegrees = 0;
     double clawClosedDegrees = 0;
     double carryingLiftDegrees = 0;
     double holderTurnDegrees = 0;
     double holderDistanceMm = 0;
     double holderLiftDegrees = 0;
-    double holderWristDegrees = 0;
     double retreatDistanceMm = 0;
 };
 
@@ -134,18 +130,16 @@ int pointsForPin(ScoredPin pin) {
 PlacementPath blackHolderOne = [] {
     PlacementPath path;
     path.estimatedDurationMs = 0; // TODO: measured worst-case placement time, in ms.
-    path.pickupTurnDegrees = 0;
-    path.pickupDistanceMm = 0; // TODO: distance to the wall pickup.
+    path.pickupTurnDegrees = -90;
+    path.pickupDistanceMm = 1200; // TODO: distance to the wall pickup.
     path.pickupLiftDegrees = 0;
-    path.pickupWristDegrees = 0;
-    path.clawOpenDegrees = 0;
+    path.clawOpenDegrees = 270;
     path.clawClosedDegrees = 0;
-    path.carryingLiftDegrees = 0;
-    path.holderTurnDegrees = 0;
-    path.holderDistanceMm = 0; // TODO: distance to black spot 1.
-    path.holderLiftDegrees = 0;
-    path.holderWristDegrees = 0;
-    path.retreatDistanceMm = 0; // TODO: positive distance to back away after release.
+    path.carryingLiftDegrees = 40;
+    path.holderTurnDegrees = 45;
+    path.holderDistanceMm = 1000; // TODO: distance to black spot 1.
+    path.holderLiftDegrees = -148;
+    path.retreatDistanceMm = 50; // TODO: positive distance to back away after release.
     path.calibrated = false; // Set true AFTER this entire path is calibrated.
     return path;
 }();
@@ -157,14 +151,12 @@ PlacementPath blackHolderTwo = [] {
     path.pickupTurnDegrees = 0;
     path.pickupDistanceMm = 0; // TODO: distance to the next wall pickup.
     path.pickupLiftDegrees = 0;
-    path.pickupWristDegrees = 0;
     path.clawOpenDegrees = 0;
     path.clawClosedDegrees = 0;
     path.carryingLiftDegrees = 0;
     path.holderTurnDegrees = 0;
     path.holderDistanceMm = 0; // TODO: distance to black spot 2, not spot 1.
     path.holderLiftDegrees = 0;
-    path.holderWristDegrees = 0;
     path.retreatDistanceMm = 0;
     path.calibrated = false; // Set true AFTER this entire path is calibrated.
     return path;
@@ -177,14 +169,12 @@ PlacementPath redHolder = [] {
     path.pickupTurnDegrees = 0;
     path.pickupDistanceMm = 0; // TODO: distance to the final wall pickup.
     path.pickupLiftDegrees = 0;
-    path.pickupWristDegrees = 0;
     path.clawOpenDegrees = 0;
     path.clawClosedDegrees = 0;
     path.carryingLiftDegrees = 0;
     path.holderTurnDegrees = 0;
     path.holderDistanceMm = 0; // TODO: distance to the red holder.
     path.holderLiftDegrees = 0;
-    path.holderWristDegrees = 0;
     path.retreatDistanceMm = 0;
     path.calibrated = false; // Set true AFTER this entire path is calibrated.
     return path;
@@ -197,14 +187,12 @@ PlacementPath blueHolder = [] {
     path.pickupTurnDegrees = 0;
     path.pickupDistanceMm = 0; // TODO: distance to the final wall pickup.
     path.pickupLiftDegrees = 0;
-    path.pickupWristDegrees = 0;
     path.clawOpenDegrees = 0;
     path.clawClosedDegrees = 0;
     path.carryingLiftDegrees = 0;
     path.holderTurnDegrees = 0;
     path.holderDistanceMm = 0; // TODO: distance to the blue holder.
     path.holderLiftDegrees = 0;
-    path.holderWristDegrees = 0;
     path.retreatDistanceMm = 0;
     path.calibrated = false; // Set true AFTER this entire path is calibrated.
     return path;
@@ -217,14 +205,12 @@ PlacementPath neutralFinalHolder = [] {
     path.pickupTurnDegrees = 0;
     path.pickupDistanceMm = 0; // TODO: distance to the final wall pickup.
     path.pickupLiftDegrees = 0;
-    path.pickupWristDegrees = 0;
     path.clawOpenDegrees = 0;
     path.clawClosedDegrees = 0;
     path.carryingLiftDegrees = 0;
     path.holderTurnDegrees = 0;
     path.holderDistanceMm = 0; // TODO: distance to the chosen neutral goal.
     path.holderLiftDegrees = 0;
-    path.holderWristDegrees = 0;
     path.retreatDistanceMm = 0;
     path.calibrated = false; // Set true AFTER this entire path is calibrated.
     return path;
@@ -253,28 +239,18 @@ void stopAutonomousMotors() {
     drive.stop(brake);
     lift.stop(hold);
     claw.stop(hold);
-    clawPosition.stop(hold);
-}
-
-bool rotateToggleDrive(double rotationDegrees) {
-        int timeoutMs = motionTimeoutMs(2000);
-        if (timeoutMs <= 0) {
-            return false;
-        }
-        toggleMotor.setTimeout(timeoutMs, msec);
-        double lfStartDegrees = driveMotorLf.position(degrees);
-        double lbStartDegrees = driveMotorLb.position(degrees);
-        double rbStartDegrees = driveMotorRb.position(degrees);
-        double rfStartDegrees = driveMotorRf.position(degrees);
-        return toggleMotor.spinFor(rotationDegrees, degrees, true) &&
-            fabs(driveMotorLf.position(degrees) - lfStartDegrees - rotationDegrees) <= 5 &&
-            fabs(driveMotorLb.position(degrees) - lbStartDegrees - rotationDegrees) <= 5 &&
-            fabs(driveMotorRb.position(degrees) - rbStartDegrees - rotationDegrees) <= 5 &&
-            fabs(driveMotorRf.position(degrees) - rfStartDegrees - rotationDegrees) <= 5;
+    toggleWheel.stop(brake);
 }
 
 bool toggleColor() {
-    return rotateToggleDrive(toggleDegrees) && rotateToggleDrive(toggleRetreatDegrees);
+    int timeoutMs = motionTimeoutMs(6000);
+    if (timeoutMs <= 0) {
+        return false;
+    }
+    toggleWheel.setTimeout(timeoutMs, msec);
+    double startDegrees = toggleWheel.position(degrees);
+    return toggleWheel.spinFor(toggleWheelDegrees, degrees, true) &&
+           fabs(toggleWheel.position(degrees) - startDegrees - toggleWheelDegrees) <= 5;
 }
 
 bool moveMechanism(motor &mechanism, double targetDegrees) {
@@ -325,7 +301,6 @@ bool turnDegrees(double angleDegrees) {
 bool placeAtHolder(const PlacementPath &path) {
     return turnDegrees(path.pickupTurnDegrees) &&
            moveLift(path.pickupLiftDegrees) &&
-           moveMechanism(clawPosition, path.pickupWristDegrees) &&
            moveMechanism(claw, path.clawOpenDegrees) &&
            driveDistance(path.pickupDistanceMm) &&
            moveMechanism(claw, path.clawClosedDegrees) &&
@@ -333,7 +308,6 @@ bool placeAtHolder(const PlacementPath &path) {
            driveDistance(-path.pickupDistanceMm) &&
            turnDegrees(path.holderTurnDegrees) &&
            driveDistance(path.holderDistanceMm) &&
-           moveMechanism(clawPosition, path.holderWristDegrees) &&
            moveLift(path.holderLiftDegrees) &&
            moveMechanism(claw, path.clawOpenDegrees) &&
            driveDistance(-path.retreatDistanceMm);
@@ -354,9 +328,7 @@ void runAutonomous(int toggleCount, const PlacementPath &finalHolder) {
     if (!autonomousCalibrated || !pathsReady || toggleCount < 0 ||
         initialReverseDistanceMm < 0 || autonomousMotionBudgetMs <= 0 ||
         autonomousMotionBudgetMs >= 15000 ||
-        (toggleCount > 0 && (!toggleCalibrated || toggleDegrees == 0 ||
-                    toggleRetreatDegrees == 0 ||
-                    (toggleDegrees > 0) == (toggleRetreatDegrees > 0)))) {
+        (toggleCount > 0 && (!toggleCalibrated || toggleWheelDegrees == 0))) {
         robotBrain.Screen.clearScreen();
         robotBrain.Screen.printAt(20, 40, "Autonomous disabled: calibrate first");
         robotBrain.Screen.printAt(20, 70, "No scoring actions were attempted");
@@ -371,13 +343,11 @@ void runAutonomous(int toggleCount, const PlacementPath &finalHolder) {
     lift.setVelocity(25, percent);
     claw.setStopping(hold);
     claw.setVelocity(20, percent);
-    clawPosition.setStopping(hold);
-    clawPosition.setVelocity(20, percent);
+    toggleWheel.setStopping(brake);
 
     bool succeeded = true;
     if (toggleCount > 0) {
-        toggleMotor.setVelocity(20, percent);
-        toggleMotor.setStopping(brake);
+        toggleWheel.setVelocity(toggleWheelSpeedPercent, percent);
         for (int toggleIndex = 0; toggleIndex < toggleCount; ++toggleIndex) {
             if (!toggleColor()) {
                 succeeded = false;
@@ -443,8 +413,8 @@ void showAutonomousSelection() {
     const char *allianceName = selectedAlliance == AllianceColor::Red ? "Red" : "Blue";
     robotBrain.Screen.printAt(20, 200, false, "Selected: %s / %s", allianceName,
                              neutralGoalRoute ? "Neutral" : "Alliance goal");
-    robotBrain.Screen.printAt(20, 225, autonomousCalibrated ? "Calibration enabled" :
-                                                           "Motion disabled: calibration required");
+    robotBrain.Screen.printAt(20, 225, autonomousCalibrated ?
+        "Calibration enabled" : "Motion disabled: calibration required");
 }
 
 void selectAutonomous() {

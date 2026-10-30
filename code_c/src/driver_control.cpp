@@ -2,7 +2,8 @@
 
 using namespace vex;
 
-const int driverSpeedPercent = 60;
+const int driverSpeedPercent = 30;
+const int liftSpeedPercent = 40;
 
 void resetDriveMeasurement() {
     driveMotorLf.setPosition(0, degrees);
@@ -33,8 +34,8 @@ void showCalibrationDebug() {
     robotBrain.Screen.printAt(10, 150, false, "Lift R:%7.1f  L:%7.1f",
                               liftMotorR.position(degrees),
                               liftMotorL.position(degrees));
-    robotBrain.Screen.printAt(10, 180, false, "Wrist:%7.1f  Claw:%7.1f",
-                              clawPosition.position(degrees),
+    robotBrain.Screen.printAt(10, 180, false, "Toggle:%7.1f  Claw:%7.1f",
+                              toggleWheel.position(degrees),
                               claw.position(degrees));
     robotBrain.Screen.printAt(10, 215, "X = stop measurement session");
 
@@ -44,8 +45,8 @@ void showCalibrationDebug() {
     controller1.Screen.setCursor(2, 1);
     controller1.Screen.print("Lift:%5.0f", liftMotorR.position(degrees));
     controller1.Screen.setCursor(3, 1);
-    controller1.Screen.print("W:%4.0f C:%4.0f",
-                             clawPosition.position(degrees),
+    controller1.Screen.print("T:%4.0f C:%4.0f",
+                             toggleWheel.position(degrees),
                              claw.position(degrees));
 }
 
@@ -95,9 +96,9 @@ void driverControl() {
         driveMotorRb.spin(forward);
 
         if (controller1.ButtonL2.pressing()) {
-            lift.spin(forward, 100, percent);
+            lift.spin(forward, liftSpeedPercent, percent);
         } else if (controller1.ButtonL1.pressing()) {
-            lift.spin(reverse, 70, percent);
+            lift.spin(reverse, liftSpeedPercent, percent);
         } else {
             lift.stop(hold);
         }
@@ -111,11 +112,11 @@ void driverControl() {
         }
 
         if (controller1.ButtonLeft.pressing()) {
-            clawPosition.spin(forward, 30, percent);
+            toggleWheel.spin(forward, 30, percent);
         } else if (controller1.ButtonRight.pressing()) {
-            clawPosition.spin(reverse, 30, percent);
+            toggleWheel.spin(reverse, 30, percent);
         } else {
-            clawPosition.stop(hold);
+            toggleWheel.stop(hold);
         }
 
         if (calibrationDebugEnabled) {

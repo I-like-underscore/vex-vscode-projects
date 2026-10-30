@@ -21,12 +21,11 @@ motor liftMotorR(PORT2, ratio36_1, false);
 motor liftMotorL(PORT21, ratio36_1, true);
 motor_group lift(liftMotorR, liftMotorL);
 motor claw(PORT1, ratio18_1, false);
-motor clawPosition(PORT10, ratio18_1, false);
+motor toggleWheel(PORT10, ratio18_1, false); // Left-front field-toggle wheel.
 
 competition robotCompetition;
 motor_group leftDrive(driveMotorLf, driveMotorLb);
 motor_group rightDrive(driveMotorRf, driveMotorRb);
-motor_group toggleMotor(driveMotorLf, driveMotorLb, driveMotorRb, driveMotorRf);
 
 // TODO: replace these drivetrain geometry placeholders with measured values.
 // Route travel distances are edited in autonomous.cpp, not here.
@@ -40,7 +39,6 @@ drivetrain drive(leftDrive, rightDrive, wheelTravelMm, trackWidthMm,
 // EDIT: true = controller-button practice; false = official competition control.
 const bool practiceModeEnabled = true;
 const int autonomousPeriodMs = 15000;
-const int manualPeriodMs = 105000; // 1 minute 45 seconds.
 std::atomic<bool> practiceMatchActive(false);
 
 bool isAutonomousSelectionLocked() {
@@ -70,7 +68,7 @@ bool waitForPracticeStart(bool manualPhase) {
 bool runPracticePeriod(void (*callback)(), int durationMs) {
     timer periodTimer;
     thread modeThread(callback);
-    while (periodTimer.time(msec) < durationMs &&
+    while ((durationMs <= 0 || periodTimer.time(msec) < durationMs) &&
            !practiceStopRequested() && controller1.installed()) {
         wait(10, msec);
     }
@@ -85,7 +83,7 @@ void runPracticeMatch() {
     if (!isAutonomousCalibrated()) {
         robotBrain.Screen.clearScreen();
         robotBrain.Screen.printAt(20, 40, "CALIBRATION MODE: autonomous disabled");
-        robotBrain.Screen.printAt(20, 75, "Press B for 1:45 manual measurement");
+        robotBrain.Screen.printAt(20, 75, "Press B for manual calibration");
         robotBrain.Screen.printAt(20, 110, "Press X to stop");
         controller1.Screen.clearScreen();
         controller1.Screen.setCursor(1, 1);
@@ -95,7 +93,7 @@ void runPracticeMatch() {
         }
 
         practiceMatchActive.store(true);
-        runPracticePeriod(driverControl, manualPeriodMs);
+        runPracticePeriod(driverControl, 0);
         return;
     }
 
@@ -117,20 +115,20 @@ void runPracticeMatch() {
     }
 
     robotBrain.Screen.clearScreen();
-    robotBrain.Screen.printAt(20, 40, "Autonomous ended. B: manual 1:45");
+    robotBrain.Screen.printAt(20, 40, "Autonomous ended. B: manual control");
     controller1.Screen.clearScreen();
     controller1.Screen.setCursor(1, 1);
-    controller1.Screen.print("B: manual 1:45");
+    controller1.Screen.print("B: manual control");
     if (!waitForPracticeStart(true)) {
         return;
     }
 
     robotBrain.Screen.clearScreen();
-    robotBrain.Screen.printAt(20, 40, "Manual: 1 minute 45 seconds. X: stop");
+    robotBrain.Screen.printAt(20, 40, "Manual control. X: stop");
     controller1.Screen.clearScreen();
     controller1.Screen.setCursor(1, 1);
-    controller1.Screen.print("MANUAL 1:45 X: stop");
-    runPracticePeriod(driverControl, manualPeriodMs);
+    controller1.Screen.print("MANUAL X: stop");
+    runPracticePeriod(driverControl, 0);
 }
 
 int main() {
